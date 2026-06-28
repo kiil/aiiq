@@ -2,6 +2,11 @@
 
 En lille web-app der tester din viden om kunstig intelligens — med gamification, humor og masser af øjenguf. Bygget på [http-nu](https://github.com/cablehead/http-nu) (en Nushell-scriptbar HTTP-server) som backend.
 
+<p align="center">
+  <img src="docs/hero.png" alt="AI IQ startskærm" width="49%">
+  <img src="docs/quiz.png" alt="AI IQ quiz med aktiv streak og combo-glød" width="49%">
+</p>
+
 ## Features
 
 - **12 AI-spørgsmål** med jokes i både de forkerte svar og feedback-linjerne
@@ -27,3 +32,7 @@ http-nu :3001 -w app.nu
 - **`public/index.html`** — selve appen (self-contained HTML/CSS/JS, ingen build-step).
 
 Spørgsmål og rang-titler bor som Nushell-`const` i `app.nu` og serialiseres med `to json`.
+
+## Licens
+
+[MIT](LICENSE) © Lennart Kiil
