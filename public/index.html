@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI IQ 🧠 — Test din AI-viden</title>
+<style>
+  :root{
+    --bg1:#0f0c29; --bg2:#302b63; --bg3:#24243e;
+    --card:rgba(255,255,255,.06); --stroke:rgba(255,255,255,.14);
+    --good:#22c55e; --bad:#ef4444; --accent:#a78bfa; --accent2:#f472b6;
+    --txt:#f5f3ff; --muted:#b9b4d8;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    color:var(--txt);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2),var(--bg3));
+    background-size:400% 400%;
+    animation:grad 18s ease infinite;
+    min-height:100%;
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;
+  }
+  @keyframes grad{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+  .wrap{width:100%;max-width:620px}
+  .card{
+    background:var(--card);
+    border:1px solid var(--stroke);
+    border-radius:24px;
+    padding:30px;
+    backdrop-filter:blur(14px);
+    box-shadow:0 20px 60px rgba(0,0,0,.45);
+  }
+  h1{font-size:clamp(34px,8vw,52px);margin:0 0 6px;letter-spacing:-1px;
+     background:linear-gradient(90deg,var(--accent),var(--accent2));
+     -webkit-background-clip:text;background-clip:text;color:transparent}
+  .tag{color:var(--muted);margin:0 0 26px;font-size:17px}
+  button{font-family:inherit;cursor:pointer}
+  .btn{
+    border:none;border-radius:16px;padding:16px 22px;font-size:18px;font-weight:600;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;width:100%;
+    transition:transform .12s ease, filter .12s ease;
+  }
+  .btn:hover{filter:brightness(1.08)}
+  .btn:active{transform:scale(.97)}
+  /* HUD */
+  .hud{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;font-weight:700}
+  .pill{background:rgba(0,0,0,.25);border:1px solid var(--stroke);border-radius:999px;padding:6px 14px;font-size:14px}
+  .score{color:#fde68a}
+  .streak{color:#fca5a5}
+  .streak.hot{animation:pulse .5s ease infinite alternate}
+  @keyframes pulse{to{text-shadow:0 0 14px #f87171;transform:scale(1.06)}}
+  .progress{height:8px;background:rgba(0,0,0,.3);border-radius:999px;overflow:hidden;margin-bottom:4px}
+  .progress>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .4s ease}
+  /* sporet bærer en FAST gradient: rød til venstre, grøn til højre */
+  .timer{position:relative;height:6px;border-radius:999px;overflow:hidden;margin:12px 0 22px;
+         background:linear-gradient(90deg,#ef4444 0%,#fbbf24 50%,#34d399 100%);
+         transform-origin:center;will-change:transform,box-shadow}
+  /* #timerBar er nu et "brugt tid"-mørkt cover der vokser fra HØJRE (æder grønt først) */
+  .timer>i{position:absolute;top:0;right:0;bottom:0;width:0;
+           background:rgba(15,12,41,.86);transition:width .1s linear}
+  /* hjerteslag — animation-duration sættes fra JS via --beat */
+  .timer.beat{animation:heartbeat var(--beat,1s) ease-in-out infinite}
+  @keyframes heartbeat{
+    0%{transform:scale(1)}
+    10%{transform:scaleX(1.01) scaleY(2.2)}
+    20%{transform:scale(1)}
+    32%{transform:scaleX(1.006) scaleY(1.7)}
+    52%{transform:scale(1)}
+    100%{transform:scale(1)}
+  }
+  .timer.warn{box-shadow:0 0 12px rgba(251,191,36,.7)}
+  .timer.panic{box-shadow:0 0 18px rgba(239,68,68,.95),0 0 6px rgba(239,68,68,.8)}
+  /* hele kortet får et lille panik-flash når tiden næsten er ude */
+  #card.panic{animation:cardPanic .5s ease-in-out infinite}
+  @keyframes cardPanic{0%,100%{box-shadow:0 20px 60px rgba(0,0,0,.45)}50%{box-shadow:0 20px 60px rgba(0,0,0,.45),0 0 0 2px rgba(239,68,68,.55)}}
+  .q{font-size:clamp(20px,4.5vw,26px);font-weight:700;margin:6px 0 22px;line-height:1.3}
+  .opts{display:flex;flex-direction:column;gap:12px}
+  .opt{
+    text-align:left;border:1px solid var(--stroke);background:rgba(255,255,255,.04);
+    color:var(--txt);border-radius:14px;padding:16px 18px;font-size:17px;font-weight:500;
+    transition:transform .1s ease, background .15s ease, border-color .15s ease;
+    display:flex;align-items:center;gap:12px;
+  }
+  .opt:hover:not(:disabled){background:rgba(255,255,255,.1);transform:translateX(4px)}
+  .opt .key{width:28px;height:28px;flex:0 0 28px;border-radius:8px;display:grid;place-items:center;
+            background:rgba(255,255,255,.1);font-weight:700;font-size:14px}
+  .opt.correct{background:rgba(34,197,94,.22);border-color:var(--good)}
+  .opt.wrong{background:rgba(239,68,68,.22);border-color:var(--bad)}
+  .opt:disabled{cursor:default}
+  .feedback{margin-top:18px;font-size:16px;min-height:24px;font-weight:600}
+  .feedback.good{color:#86efac}
+  .feedback.bad{color:#fca5a5}
+  .next{margin-top:18px;display:none}
+  .center{text-align:center}
+  .bigscore{font-size:64px;font-weight:800;margin:6px 0;
+            background:linear-gradient(90deg,var(--accent),var(--accent2));
+            -webkit-background-clip:text;background-clip:text;color:transparent}
+  .rankemoji{font-size:78px;line-height:1;margin:10px 0}
+  .ranktitle{font-size:30px;font-weight:800;margin:0 0 8px}
+  .rankdesc{color:var(--muted);font-size:17px;margin:0 0 24px;line-height:1.5}
+  .stats{display:flex;justify-content:center;gap:26px;margin:18px 0 26px;color:var(--muted)}
+  .stats b{display:block;font-size:24px;color:var(--txt)}
+  .float{margin-top:14px;color:var(--muted);font-size:13px;text-align:center}
+  canvas#cf{position:fixed;inset:0;pointer-events:none;z-index:50}
+  .hidden{display:none}
+  .toast{position:fixed;top:18px;left:50%;transform:translateX(-50%);
+         background:rgba(0,0,0,.6);border:1px solid var(--stroke);padding:10px 18px;border-radius:999px;
+         font-weight:700;opacity:0;transition:opacity .2s ease;z-index:60}
+  .toast.show{opacity:1}
+
+  /* ===== Combo "juice" ===== */
+  #card{position:relative;transition:box-shadow .3s ease}
+  /* glødende aura bag kortet — eskalerer med combo */
+  #card::before{
+    content:"";position:absolute;inset:-4px;border-radius:28px;z-index:-1;
+    opacity:0;transition:opacity .35s ease;
+    background:linear-gradient(120deg,var(--accent),var(--accent2),var(--accent));
+    background-size:200% 200%;filter:blur(16px);
+  }
+  #card.hot::before{opacity:.85;animation:glow 1.1s ease-in-out infinite, auraShift 3s linear infinite}
+  #card.hot2::before{opacity:1;background:linear-gradient(120deg,#f472b6,#fb7185,#fbbf24);filter:blur(20px);animation-duration:.8s,2.4s}
+  #card.hot3::before{opacity:1;background:linear-gradient(120deg,#fbbf24,#f472b6,#60a5fa,#34d399,#fbbf24);filter:blur(26px);animation-duration:.55s,1.6s}
+  @keyframes glow{0%,100%{opacity:.6;transform:scale(.99)}50%{opacity:1;transform:scale(1.02)}}
+  @keyframes auraShift{to{background-position:200% 50%}}
+
+  /* hele kortet danser når man er hot */
+  .wrap.dance{animation:dance 1.1s ease-in-out infinite}
+  .wrap.dance.dance2{animation-duration:.85s}
+  .wrap.dance.dance3{animation-duration:.6s}
+  @keyframes dance{
+    0%{transform:rotate(-.8deg) translateY(0)}
+    25%{transform:rotate(.6deg) translateY(-5px)}
+    50%{transform:rotate(-.5deg) translateY(0)}
+    75%{transform:rotate(.8deg) translateY(-3px)}
+    100%{transform:rotate(-.8deg) translateY(0)}
+  }
+
+  /* pump ved rigtigt svar */
+  #card.pump{animation:pump .5s cubic-bezier(.2,.8,.3,1.5)}
+  @keyframes pump{0%{transform:scale(1)}25%{transform:scale(1.05)}55%{transform:scale(.985)}100%{transform:scale(1)}}
+  /* shake ved forkert svar */
+  #card.shake{animation:shake .42s ease}
+  @keyframes shake{0%,100%{transform:translateX(0)}15%{transform:translateX(-10px) rotate(-1.2deg)}35%{transform:translateX(9px) rotate(1.2deg)}55%{transform:translateX(-7px)}75%{transform:translateX(5px)}90%{transform:translateX(-2px)}}
+
+  /* streak-pillen vokser og banker med combo */
+  .streak.hot{animation:streakBeat .5s ease infinite alternate}
+  .streak.hot2{transform:scale(1.12)}
+  .streak.hot3{transform:scale(1.25)}
+  @keyframes streakBeat{to{text-shadow:0 0 18px #fb7185,0 0 6px #fff;filter:brightness(1.3)}}
+  .streak.bump{animation:streakBump .35s cubic-bezier(.2,.8,.3,1.6)}
+  @keyframes streakBump{0%{transform:scale(1)}40%{transform:scale(1.45) rotate(-6deg)}100%{transform:scale(1)}}
+
+  @media (prefers-reduced-motion: reduce){
+    .wrap.dance,#card.pump,#card.shake,#card.hot::before,.streak.hot,.timer.beat,#card.panic{animation:none !important}
+  }
+</style>
+</head>
+<body>
+<canvas id="cf"></canvas>
+<div id="toast" class="toast"></div>
+<div class="wrap">
+  <div class="card" id="card">
+
+    <!-- START -->
+    <section id="start">
+      <h1>AI IQ 🧠</h1>
+      <p class="tag">Hvor godt kender du egentlig kunstig intelligens?<br>Hurtige svar giver flere point. Streaks giver combo. Vrøvl giver grin.</p>
+      <button class="btn" id="startBtn">Start quizzen →</button>
+      <p class="float">Drevet af <b>http-nu</b> + Nushell. Ingen rigtige AGI'er kom til skade.</p>
+    </section>
+
+    <!-- QUIZ -->
+    <section id="quiz" class="hidden">
+      <div class="hud">
+        <span class="pill" id="counter">1 / 10</span>
+        <span class="pill score" id="scoreLbl">0 pt</span>
+        <span class="pill streak" id="streakLbl">🔥 0</span>
+      </div>
+      <div class="progress"><i id="prog"></i></div>
+      <div class="timer"><i id="timerBar"></i></div>
+      <div class="q" id="qText">…</div>
+      <div class="opts" id="opts"></div>
+      <div class="feedback" id="feedback"></div>
+      <button class="btn next" id="nextBtn">Næste →</button>
+    </section>
+
+    <!-- RESULT -->
+    <section id="result" class="hidden center">
+      <div class="rankemoji" id="rankEmoji">🤖</div>
+      <div class="ranktitle" id="rankTitle">…</div>
+      <div class="bigscore" id="finalScore">0</div>
+      <div class="rankdesc" id="rankDesc">…</div>
+      <div class="stats">
+        <div><b id="stCorrect">0</b>rigtige</div>
+        <div><b id="stTotal">0</b>spørgsmål</div>
+        <div><b id="stBest">0</b>bedste streak</div>
+      </div>
+      <button class="btn" id="againBtn">Spil igen 🔁</button>
+      <p class="float" id="shareLine"></p>
+    </section>
+
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const KEYS = ["A","B","C","D"];
+let QS = [], RANKS = [];
+let idx = 0, score = 0, streak = 0, bestStreak = 0, correctCount = 0;
+let qStart = 0, timer = null, timeLeft = 0, answered = false, lastBeat = 0;
+let audioCtx = null, tickAt = 0, tickTock = 0;
+
+// Web Audio: et lille klik = ur-tik (ingen lydfiler nødvendige)
+function ensureAudio(){
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended') audioCtx.resume();
+  }catch(e){ audioCtx=null; }
+}
+function playTick(high){
+  if(!audioCtx) return;
+  const t=audioCtx.currentTime;
+  const osc=audioCtx.createOscillator(), g=audioCtx.createGain();
+  osc.type='square';
+  osc.frequency.value = high ? 1500 : 1050;   // tik / tak
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(0.16,t+0.001);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+0.05);
+  osc.connect(g).connect(audioCtx.destination);
+  osc.start(t); osc.stop(t+0.06);
+}
+
+// "nah-nah-naaaaah" — trist trombone ved timeout
+function playSadTrombone(){
+  ensureAudio();
+  if(!audioCtx) return;
+  const notes=[
+    {f:311.13, d:0.26},  // Eb4
+    {f:293.66, d:0.26},  // D4
+    {f:277.18, d:0.26},  // Db4
+    {f:261.63, d:0.75}   // C4 (lang og trist)
+  ];
+  let t=audioCtx.currentTime+0.02;
+  notes.forEach((n,i)=>{
+    const osc=audioCtx.createOscillator(), g=audioCtx.createGain(), lp=audioCtx.createBiquadFilter();
+    lp.type='lowpass'; lp.frequency.value=950;          // dæmp så det lyder som messing
+    osc.type='sawtooth';
+    osc.frequency.setValueAtTime(n.f*1.14, t);          // start lidt højt...
+    osc.frequency.exponentialRampToValueAtTime(n.f, t+n.d*0.8); // ...og lad det "waah"-droppe
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(0.22,t+0.04);
+    g.gain.setValueAtTime(0.22,t+n.d-0.08);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+n.d);
+    osc.connect(lp).connect(g).connect(audioCtx.destination);
+    osc.start(t); osc.stop(t+n.d+0.02);
+    t += n.d;
+  });
+}
+
+// kort glad blip ved rigtigt svar (opadgående C-dur arpeggio)
+function playRight(){
+  ensureAudio(); if(!audioCtx) return;
+  const t0=audioCtx.currentTime+0.01;
+  const blip=(f,s,d,v=0.15)=>{
+    const osc=audioCtx.createOscillator(), g=audioCtx.createGain();
+    osc.type='triangle'; osc.frequency.value=f;
+    g.gain.setValueAtTime(0.0001,s);
+    g.gain.exponentialRampToValueAtTime(v,s+0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001,s+d);
+    osc.connect(g).connect(audioCtx.destination);
+    osc.start(s); osc.stop(s+d+0.02);
+  };
+  blip(659.25, t0,      0.08);  // E5
+  blip(783.99, t0+0.06, 0.08);  // G5
+  blip(1046.50,t0+0.12, 0.16);  // C6 (lidt længere top)
+}
+
+// kort trist "womp" ved forkert svar (nedadgående lille terts)
+function playWrong(){
+  ensureAudio(); if(!audioCtx) return;
+  const t0=audioCtx.currentTime+0.01;
+  const womp=(f,s,d,v=0.16)=>{
+    const osc=audioCtx.createOscillator(), g=audioCtx.createGain(), lp=audioCtx.createBiquadFilter();
+    lp.type='lowpass'; lp.frequency.value=800;
+    osc.type='sawtooth';
+    osc.frequency.setValueAtTime(f*1.06,s);
+    osc.frequency.exponentialRampToValueAtTime(f,s+d*0.7);   // lille "waah"-drop
+    g.gain.setValueAtTime(0.0001,s);
+    g.gain.exponentialRampToValueAtTime(v,s+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,s+d);
+    osc.connect(lp).connect(g).connect(audioCtx.destination);
+    osc.start(s); osc.stop(s+d+0.02);
+  };
+  womp(311.13, t0,      0.16);  // Eb4
+  womp(233.08, t0+0.13, 0.24);  // Bb3 (lavere, trist)
+}
+
+// "ta-da-da-DAAAA" — triumf-fanfare ved AGI-Overherre
+function playFanfare(){
+  ensureAudio();
+  if(!audioCtx) return;
+  const note=(f,start,dur,vol=0.16)=>{
+    const osc=audioCtx.createOscillator(), g=audioCtx.createGain();
+    osc.type='triangle'; osc.frequency.value=f;
+    g.gain.setValueAtTime(0.0001,start);
+    g.gain.exponentialRampToValueAtTime(vol,start+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,start+dur);
+    osc.connect(g).connect(audioCtx.destination);
+    osc.start(start); osc.stop(start+dur+0.02);
+  };
+  const t0=audioCtx.currentTime+0.04;
+  // optakt: ta-da-da
+  note(523.25, t0,      0.13);  // C5
+  note(659.25, t0+0.13, 0.13);  // E5
+  note(783.99, t0+0.26, 0.13);  // G5
+  // DAAAA: holdt C-dur akkord, højt og strålende
+  const t1=t0+0.42;
+  note(1046.50, t1, 1.0, 0.17); // C6
+  note(783.99,  t1, 1.0, 0.11); // G5
+  note(659.25,  t1, 1.0, 0.11); // E5
+  note(523.25,  t1, 1.0, 0.11); // C5
+}
+const PER_Q_MS = 18000; // 18 sek pr. spørgsmål
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+async function boot(){
+  try{
+    const r = await fetch('/api/questions');
+    const data = await r.json();
+    QS = shuffle(data.questions.slice());
+    // Shuffle svarmulighederne i hvert spørgsmål og husk hvor facit havner
+    QS.forEach(q=>{
+      const opts = q.options.map((text,i)=>({text, correct:i===q.answer}));
+      shuffle(opts);
+      q.shuffled = opts;
+      q.answer = opts.findIndex(o=>o.correct);
+    });
+    RANKS = data.ranks;
+  }catch(e){
+    $('#start').innerHTML = '<h1>Av 😬</h1><p class="tag">Kunne ikke hente spørgsmål fra serveren. Kører http-nu?</p>';
+  }
+}
+boot();
+
+$('#startBtn').onclick = startGame;
+$('#againBtn').onclick = () => location.reload();
+$('#nextBtn').onclick = nextQuestion;
+
+function startGame(){
+  ensureAudio();
+  idx=0;score=0;streak=0;bestStreak=0;correctCount=0;
+  clearCombo();
+  $('#start').classList.add('hidden');
+  $('#result').classList.add('hidden');
+  $('#quiz').classList.remove('hidden');
+  renderQuestion();
+}
+
+function renderQuestion(){
+  answered=false;
+  const q = QS[idx];
+  $('#counter').textContent = `${idx+1} / ${QS.length}`;
+  $('#scoreLbl').textContent = `${score} pt`;
+  updateStreakLbl();
+  $('#prog').style.width = `${(idx/QS.length)*100}%`;
+  $('#qText').textContent = q.q;
+  $('#feedback').textContent='';
+  $('#feedback').className='feedback';
+  $('#nextBtn').style.display='none';
+
+  const opts = $('#opts'); opts.innerHTML='';
+  q.shuffled.forEach((o,i)=>{
+    const b=document.createElement('button');
+    b.className='opt';
+    b.innerHTML=`<span class="key">${KEYS[i]}</span><span>${o.text}</span>`;
+    b.onclick=()=>answer(i,b);
+    opts.appendChild(b);
+  });
+
+  // timer
+  qStart=performance.now();
+  timeLeft=PER_Q_MS;
+  lastBeat=0; tickAt=0;
+  $('#timerBar').style.width='0%';                // intet brugt endnu → fuldt grønt spor
+  const tb=$('#timerBar').parentElement;
+  tb.classList.remove('beat','warn','panic'); tb.style.removeProperty('--beat');
+  $('#card').classList.remove('panic');
+  clearInterval(timer);
+  timer=setInterval(()=>{
+    timeLeft=Math.max(0,PER_Q_MS-(performance.now()-qStart));
+    const frac=timeLeft/PER_Q_MS;
+    $('#timerBar').style.width=`${(1-frac)*100}%`; // cover = brugt tid, vokser fra højre
+    updateHeartbeat(frac);
+    if(timeLeft<=0){clearInterval(timer); if(!answered) answer(-1,null);}
+  },80);
+}
+
+// Pulserende hjerteslag på timeren — pulsen stiger jo tættere på nul
+function updateHeartbeat(frac){
+  if(answered) return;
+  const tb=$('#timerBar').parentElement;          // .timer
+  const active = frac < 0.65;                      // ro de første ~1/3, så stress
+  tb.classList.toggle('beat', active);
+  tb.classList.toggle('warn', frac < 0.5);
+  const panic = frac < 0.22;
+  tb.classList.toggle('panic', panic);
+  $('#card').classList.toggle('panic', panic);
+  // beat-tempo: roligt ~0.9s (ved 65%) ned til hektisk ~0.26s (ved 0)
+  let beat = 0.26 + frac * 1.0;
+  beat = Math.round(beat*20)/20;                   // trin på 0.05s mod jitter
+  if(active && beat !== lastBeat){ tb.style.setProperty('--beat', beat+'s'); lastBeat=beat; }
+  // tikkende ur under panik — i takt med (og accelererende som) hjerteslaget
+  if(panic && audioCtx){
+    const now=performance.now();
+    if(now>=tickAt){ playTick(tickTock); tickTock = tickTock?0:1; tickAt = now + beat*1000; }
+  }
+}
+
+function updateStreakLbl(bump){
+  const lbl=$('#streakLbl');
+  lbl.textContent=`🔥 ${streak}`;
+  lbl.classList.toggle('hot', streak>=3);
+  lbl.classList.toggle('hot2', streak>=5);
+  lbl.classList.toggle('hot3', streak>=7);
+  if(bump){ lbl.classList.remove('bump'); void lbl.offsetWidth; lbl.classList.add('bump'); }
+}
+
+// Slå combo-glød + dans til/fra på kortet ud fra nuværende streak
+function applyCombo(){
+  const card=$('#card'), wrap=document.querySelector('.wrap');
+  card.classList.remove('hot','hot2','hot3');
+  wrap.classList.remove('dance','dance2','dance3');
+  if(streak>=3){ card.classList.add('hot'); wrap.classList.add('dance'); }
+  if(streak>=5){ card.classList.add('hot2'); wrap.classList.add('dance2'); }
+  if(streak>=7){ card.classList.add('hot3'); wrap.classList.add('dance3'); }
+}
+function clearCombo(){
+  $('#card').classList.remove('hot','hot2','hot3','pump','shake');
+  document.querySelector('.wrap').classList.remove('dance','dance2','dance3');
+}
+// Genstart en one-shot animation (pump/shake) via reflow
+function oneShot(cls){
+  const card=$('#card');
+  card.classList.remove(cls); void card.offsetWidth; card.classList.add(cls);
+}
+
+function answer(choice, btn){
+  if(answered) return;
+  answered=true;
+  clearInterval(timer);
+  const tb=$('#timerBar').parentElement;
+  tb.classList.remove('beat','warn','panic');
+  $('#card').classList.remove('panic');
+  const q=QS[idx];
+  const opts=[...document.querySelectorAll('.opt')];
+  opts.forEach((o,i)=>{
+    o.disabled=true;
+    if(i===q.answer) o.classList.add('correct');
+    if(i===choice && choice!==q.answer) o.classList.add('wrong');
+  });
+
+  const fb=$('#feedback');
+  if(choice===q.answer){
+    correctCount++;
+    streak++;
+    bestStreak=Math.max(bestStreak,streak);
+    const frac=timeLeft/PER_Q_MS;                 // 0..1 hvor hurtig
+    const speedBonus=Math.round(100*frac);        // op til +100
+    const mult=Math.min(1+(streak-1)*0.25, 3);    // combo, cappet ved x3
+    const gained=Math.round((100+speedBonus)*mult);
+    score+=gained;
+    fb.textContent=`✅ ${q.right}  +${gained} pt`+(mult>1?`  (combo x${mult.toFixed(2)})`:'');
+    fb.className='feedback good';
+    toast(streak>=3?`🔥 ${streak} i streg!`:`+${gained} pt`);
+    $('#card').classList.remove('shake');
+    oneShot('pump');
+    applyCombo();
+    updateStreakLbl(true);
+    playRight();
+    miniBurst();
+    if(streak>=3) miniBurst();   // ekstra fnug jo varmere det bliver
+  }else{
+    streak=0;
+    const reason = choice===-1 ? '⏰ Tiden løb ud! ' : '❌ ';
+    fb.textContent=`${reason}${q.wrong}`;
+    fb.className='feedback bad';
+    oneShot('shake');
+    clearCombo();
+    updateStreakLbl(false);
+    if(choice===-1) playSadTrombone(); else playWrong();
+  }
+  $('#scoreLbl').textContent=`${score} pt`;
+  $('#prog').style.width=`${((idx+1)/QS.length)*100}%`;
+
+  const nb=$('#nextBtn');
+  nb.textContent = idx+1<QS.length ? 'Næste →' : 'Se resultat 🏁';
+  nb.style.display='block';
+}
+
+function nextQuestion(){
+  idx++;
+  if(idx<QS.length) renderQuestion();
+  else finish();
+}
+
+function finish(){
+  clearCombo();
+  $('#quiz').classList.add('hidden');
+  $('#result').classList.remove('hidden');
+  const pct=Math.round((correctCount/QS.length)*100);
+  let rank=RANKS[0];
+  for(const r of RANKS){ if(pct>=r.min) rank=r; }
+  $('#rankEmoji').textContent=rank.emoji;
+  $('#rankTitle').textContent=rank.title;
+  $('#rankDesc').textContent=rank.desc;
+  $('#finalScore').textContent=`${score} pt`;
+  $('#stCorrect').textContent=correctCount;
+  $('#stTotal').textContent=QS.length;
+  $('#stBest').textContent=bestStreak;
+  $('#shareLine').textContent=`Du fik ${correctCount}/${QS.length} rigtige (${pct}%) som "${rank.title}".`;
+  if(pct>=65) confetti(160);
+  else miniBurst();
+  if(rank.title==='AGI-Overherre'){ playFanfare(); setTimeout(()=>confetti(120),420); }
+}
+
+/* keyboard 1-4 / A-D */
+document.addEventListener('keydown',e=>{
+  if($('#quiz').classList.contains('hidden')) return;
+  const k=e.key.toUpperCase();
+  const map={'1':0,'2':1,'3':2,'4':3,'A':0,'B':1,'C':2,'D':3};
+  if(k in map && !answered){ const o=document.querySelectorAll('.opt')[map[k]]; if(o) o.click(); }
+  else if(e.key==='Enter' && answered){ $('#nextBtn').click(); }
+});
+
+/* toast */
+let toastT;
+function toast(msg){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),1100);
+}
+
+/* confetti */
+const cf=$('#cf'), cx=cf.getContext('2d'); let parts=[];
+function resize(){cf.width=innerWidth;cf.height=innerHeight;} resize(); addEventListener('resize',resize);
+function confetti(n){ for(let i=0;i<n;i++) parts.push(mk(innerWidth/2,innerHeight/3,true)); if(parts.length===n) loop(); }
+function miniBurst(){ const had=parts.length; for(let i=0;i<28;i++) parts.push(mk(innerWidth/2,innerHeight/2,false)); if(!had) loop(); }
+function mk(x,y,big){
+  const c=['#a78bfa','#f472b6','#fde68a','#34d399','#60a5fa','#fb7185'];
+  return {x,y,vx:(Math.random()-.5)*(big?14:9),vy:(Math.random()-1)*(big?14:9)-4,
+          g:.35,s:(Math.random()*6+4),col:c[Math.random()*c.length|0],rot:Math.random()*6,vr:(Math.random()-.5)*.4,life:big?120:60};
+}
+function loop(){
+  cx.clearRect(0,0,cf.width,cf.height);
+  parts.forEach(p=>{p.vy+=p.g;p.x+=p.vx;p.y+=p.vy;p.rot+=p.vr;p.life--;
+    cx.save();cx.translate(p.x,p.y);cx.rotate(p.rot);cx.fillStyle=p.col;cx.fillRect(-p.s/2,-p.s/2,p.s,p.s);cx.restore();});
+  parts=parts.filter(p=>p.life>0 && p.y<cf.height+40);
+  if(parts.length) requestAnimationFrame(loop); else cx.clearRect(0,0,cf.width,cf.height);
+}
+</script>
+</body>
+</html>
