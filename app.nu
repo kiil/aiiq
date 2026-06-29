@@ -35,6 +35,8 @@ const QUESTIONS = [
     answer: 0
     right: "Korrekt! Selvom 'Giant Pile of Tensors' teknisk set også passer ret godt."
     wrong: "Næ. Det er Generative Pre-trained Transformer — ikke noget med Optimus Prime."
+    topic: "Hvad GPT betyder"
+    learn: "GPT står for Generative Pre-trained Transformer. 'Pre-trained' = den er først trænet på enorme mængder tekst; 'Generative' = den genererer ny tekst ét token ad gangen; 'Transformer' = den underliggende netværksarkitektur. Tilsammen: en forhåndstrænet tekstgenerator bygget på transformer-arkitekturen."
   }
   {
     q: "Hvad kaldes det, når en sprogmodel selvsikkert finder på rent vrøvl?"
@@ -47,6 +49,8 @@ const QUESTIONS = [
     answer: 0
     right: "Ja! En hallucination. Modellen lyver ikke — den er bare meget, meget overbevist."
     wrong: "Det hedder en hallucination. (Selvom 'kreativ regnskabsføring' ramte tæt på.)"
+    topic: "Hallucinationer"
+    learn: "En hallucination er når en model selvsikkert producerer forkert eller opdigtet information. Den lyver ikke bevidst — den forudsiger blot det mest sandsynlige næste token, og nogle gange bliver det plausibelt vrøvl. Derfor: verificér altid vigtige fakta, og giv gerne modellen kilder at støtte sig til."
   }
   {
     q: "Hvilket firma står bag Claude?"
@@ -59,6 +63,8 @@ const QUESTIONS = [
     answer: 0
     right: "Præcis — Anthropic. Og nej, vi planlægger ikke at overtage verden. Endnu."
     wrong: "Det er Anthropic. Skynet er heldigvis stadig fiktion."
+    topic: "Hvem laver Claude"
+    learn: "Claude er udviklet af Anthropic — et AI-firma med fokus på sikkerhed. Til sammenligning: ChatGPT kommer fra OpenAI, og Gemini fra Google DeepMind. At kende aktørerne hjælper med at forstå de forskellige modellers stil og styrker."
   }
   {
     q: "Hvad er en 'token' i en sprogmodel?"
@@ -71,6 +77,8 @@ const QUESTIONS = [
     answer: 0
     right: "Spot on. Modeller tænker i tokens, ikke i hele ord."
     wrong: "En token er en stump tekst. Du betaler ganske vist pr. token — men det er ikke krypto."
+    topic: "Tokens"
+    learn: "Sprogmodeller læser og skriver i tokens — små stumper tekst, typisk et ord, en orddel eller et tegn. Et langt ord som 'uforudsigelig' kan blive til flere tokens. Vigtigt at vide: både pris og kontekstlængde måles i tokens, ikke i ord."
   }
   {
     q: "Hvad styrer 'temperature' når en model genererer tekst?"
@@ -83,6 +91,8 @@ const QUESTIONS = [
     answer: 0
     right: "Nemlig! Høj temperature = vildere svar. Lav = kedeligt men forudsigeligt."
     wrong: "Temperature styrer kreativiteten/tilfældigheden — ikke GPU'ens kernetemperatur."
+    topic: "Temperature"
+    learn: "Temperature styrer hvor tilfældigt modellen vælger næste token. Lav temperature (omkring 0) giver fokuserede, forudsigelige og gentagelige svar — godt til fakta og kode. Høj temperature giver mere variation og kreativitet, men også større risiko for vrøvl."
   }
   {
     q: "Hvad er en 'transformer' i AI-sammenhæng?"
@@ -95,6 +105,8 @@ const QUESTIONS = [
     answer: 0
     right: "Korrekt — 'Attention Is All You Need'. Bogstaveligt talt papirets titel."
     wrong: "Det er en netværksarkitektur (attention). Beklager, ingen Autobots her."
+    topic: "Transformer-arkitekturen"
+    learn: "Transformeren er den neurale netværksarkitektur bag stort set alle moderne sprogmodeller. Den blev introduceret i 2017-papiret 'Attention Is All You Need'. Dens kerne er en attention-mekanisme, der lader modellen vægte hvilke ord i teksten der er relevante for hinanden — også over lange afstande."
   }
   {
     q: "Hvad gør RAG (Retrieval-Augmented Generation)?"
@@ -107,6 +119,8 @@ const QUESTIONS = [
     answer: 0
     right: "Ja! RAG giver modellen 'eksterne noter', så den hallucinerer mindre."
     wrong: "RAG henter dokumenter og fodrer dem til modellen. Ikke en klud, desværre."
+    topic: "RAG"
+    learn: "Retrieval-Augmented Generation (RAG) henter relevante dokumenter fra en vidensbase og giver dem til modellen som kontekst, før den svarer. Det gør svarene mere opdaterede og faktuelle og reducerer hallucinationer — modellen får så at sige eksterne noter med, i stedet for kun at stole på hukommelsen."
   }
   {
     q: "Hvad betyder 'overfitting'?"
@@ -119,6 +133,8 @@ const QUESTIONS = [
     answer: 0
     right: "Præcis. Modellen blev en stræber der pluggede facit i stedet for at forstå."
     wrong: "Overfitting = den pluggede træningsdata udenad og dumper til eksamen på nyt data."
+    topic: "Overfitting"
+    learn: "Overfitting er når en model lærer træningsdataene udenad — inklusive tilfældig støj — i stedet for de generelle mønstre. Den klarer sig flot på kendt data, men dårligt på nyt, uset data. Det modvirkes med mere/varieret data, regularisering, og ved at validere på data modellen ikke har set."
   }
   {
     q: "Hvem fik Turing-prisen 2018 som 'the godfathers of deep learning'?"
@@ -131,6 +147,8 @@ const QUESTIONS = [
     answer: 0
     right: "Korrekt! Geoffrey Hinton, Yoshua Bengio og Yann LeCun."
     wrong: "Det var Hinton, Bengio & LeCun. WiFi-routeren bidrog dog moralsk."
+    topic: "Deep learnings pionerer"
+    learn: "Geoffrey Hinton, Yoshua Bengio og Yann LeCun modtog Turing-prisen (datalogiens svar på en Nobelpris) i 2018 for deres gennembrud inden for deep learning. De kaldes ofte 'the godfathers of deep learning' og lagde grunden til de neurale netværk, der driver nutidens AI."
   }
   {
     q: "Hvad er 'fine-tuning'?"
@@ -143,6 +161,8 @@ const QUESTIONS = [
     answer: 0
     right: "Ja! Du tager en klog model og specialiserer den til din opgave."
     wrong: "Fine-tuning = videre-træning på dine egne data. Guitaren må vente."
+    topic: "Fine-tuning"
+    learn: "Fine-tuning er at tage en allerede forhåndstrænet model og træne den videre på et mindre, specifikt datasæt — så den bliver bedre til en bestemt opgave, domæne eller stil, uden at man træner fra bunden. Ofte er en god prompt eller RAG dog nok, før man overhovedet behøver fine-tuning."
   }
   {
     q: "Hvad er en 'context window'?"
@@ -155,6 +175,8 @@ const QUESTIONS = [
     answer: 0
     right: "Nemlig — løber du tør for context window, glemmer modellen starten af samtalen."
     wrong: "Det er hvor meget tekst modellen kan rumme ad gangen — ikke et browser-vindue."
+    topic: "Context window"
+    learn: "Context window er hvor meget tekst (målt i tokens) en model kan holde i 'hukommelsen' på én gang — det dækker både dit input og modellens svar. Løber samtalen ud over vinduet, ryger det tidligste ud og 'glemmes'. Større vinduer kan rumme længere dokumenter og samtaler."
   }
   {
     q: "Hvad er det primære formål med RLHF?"
@@ -167,6 +189,8 @@ const QUESTIONS = [
     answer: 0
     right: "Korrekt! Reinforcement Learning from Human Feedback = menneskelig finpudsning af opførsel."
     wrong: "RLHF handler om at justere opførsel efter menneskelige præferencer — ikke om fart."
+    topic: "RLHF"
+    learn: "Reinforcement Learning from Human Feedback (RLHF) finjusterer en models opførsel ud fra menneskers vurderinger af dens svar. Mennesker rangerer outputs, og modellen lærer at foretrække den slags svar. Det er en stor grund til at moderne chatmodeller føles hjælpsomme, høflige og gode til at følge instruktioner."
   }
 ]
 

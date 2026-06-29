@@ -180,6 +180,21 @@
   .brow.top1 .rank{color:#fde68a;font-size:18px}
   .bempty{color:var(--muted);text-align:center;padding:16px}
   .boardtitle{font-size:18px;font-weight:700;margin:0 0 12px;color:var(--muted);text-align:left}
+  /* personligt kursus */
+  .course{margin:22px 0 4px;text-align:left}
+  .course-head{font-size:20px;font-weight:800;margin:0 0 4px;text-align:center}
+  .course-sub{color:var(--muted);font-size:14px;margin:0 0 16px;text-align:center}
+  .lesson{border:1px solid var(--stroke);background:rgba(255,255,255,.04);border-radius:16px;
+    padding:16px 18px;margin-bottom:12px;border-left:4px solid var(--accent)}
+  .lesson .lnum{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;font-weight:800;font-size:13px;margin-right:8px;vertical-align:middle}
+  .lesson h4{display:inline;font-size:17px;margin:0;vertical-align:middle}
+  .lesson .q{color:var(--muted);font-size:13px;margin:10px 0 0}
+  .lesson .ans{font-size:14px;margin:8px 0 0}
+  .lesson .ans b{color:#86efac}
+  .lesson .body{font-size:15px;line-height:1.55;margin:10px 0 0}
+  .course-perfect{text-align:center;border:1px solid var(--stroke);background:rgba(34,197,94,.1);
+    border-radius:16px;padding:18px;font-size:16px}
 
   @media (prefers-reduced-motion: reduce){
     .wrap.dance,#card.pump,#card.shake,#card.hot::before,.streak.hot,.timer.beat,#card.panic{animation:none !important}
@@ -237,6 +252,7 @@
         <div><b id="stBest">0</b>bedste streak</div>
       </div>
       <p class="float" id="loginHint"></p>
+      <div id="course" class="course"></div>
       <div id="resultBoard" class="boardwrap"></div>
       <button class="btn" id="againBtn">Spil igen 🔁</button>
       <p class="float" id="shareLine"></p>
@@ -251,6 +267,7 @@ const KEYS = ["A","B","C","D"];
 let QS = [], RANKS = [];
 let currentUser = null;
 let idx = 0, score = 0, streak = 0, bestStreak = 0, correctCount = 0;
+let missed = [];   // spørgsmål deltageren svarede forkert på → personligt kursus
 let qStart = 0, timer = null, timeLeft = 0, answered = false, lastBeat = 0;
 let audioCtx = null, tickAt = 0, tickTock = 0;
 
@@ -490,7 +507,7 @@ $('#boardBack').onclick = () => { $('#board').classList.add('hidden'); $('#start
 
 function startGame(){
   ensureAudio();
-  idx=0;score=0;streak=0;bestStreak=0;correctCount=0;
+  idx=0;score=0;streak=0;bestStreak=0;correctCount=0;missed=[];
   clearCombo();
   $('#start').classList.add('hidden');
   $('#result').classList.add('hidden');
@@ -624,6 +641,7 @@ function answer(choice, btn){
     if(streak>=3) miniBurst();   // ekstra fnug jo varmere det bliver
   }else{
     streak=0;
+    missed.push(q);                               // til det personlige kursus
     const reason = choice===-1 ? '⏰ Tiden løb ud! ' : '❌ ';
     fb.textContent=`${reason}${q.wrong}`;
     fb.className='feedback bad';
@@ -666,7 +684,35 @@ function finish(){
   else miniBurst();
   if(rank.title==='AGI-Overherre'){ playFanfare(); setTimeout(()=>confetti(120),420); }
   emit({type:'finish', score, correct:correctCount, total:QS.length, rank:rank.title});
+  renderCourse();
   submitAndShowBoard();
+}
+
+// Saml et personligt mini-kursus af præcis de emner deltageren missede
+function renderCourse(){
+  const el = $('#course');
+  if(!missed.length){
+    el.innerHTML = '<div class="course-perfect">🎓 Intet at repetere — du svarede rigtigt på det hele!</div>';
+    return;
+  }
+  let html = `<div class="course-head">📚 Dit personlige AI-kursus</div>
+    <div class="course-sub">Samlet ud fra de ${missed.length} ${missed.length===1?'ting':'ting'} du missede — lige til at læse igennem.</div>`;
+  missed.forEach((q,i)=>{
+    const correctText = q.shuffled[q.answer].text;
+    const lesson = document.createElement('div');
+    lesson.className = 'lesson';
+    lesson.innerHTML = `<span class="lnum"></span><h4></h4>
+      <p class="q"></p>
+      <p class="ans">Rigtigt svar: <b></b></p>
+      <p class="body"></p>`;
+    lesson.querySelector('.lnum').textContent = i+1;
+    lesson.querySelector('h4').textContent = q.topic;
+    lesson.querySelector('.q').textContent = '❓ ' + q.q;
+    lesson.querySelector('.ans b').textContent = correctText;
+    lesson.querySelector('.body').textContent = q.learn;
+    html += lesson.outerHTML;
+  });
+  el.innerHTML = html;
 }
 
 // Gem score (hvis logget ind) og vis leaderboardet på resultatskærmen

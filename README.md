@@ -14,9 +14,18 @@ En lille web-app der tester din viden om kunstig intelligens — med gamificatio
 - **Øjenguf**: kortet pumper ved rigtige svar, ryster ved forkerte, og danser med en eskalerende glød på streaks
 - **Stress-timer**: en nedtællingslinje der slår som et hjerte og accelererer mod nul (grøn → rød)
 - **Lyd** (Web Audio, ingen lydfiler): glad blip ved rigtigt svar, womp ved forkert, tikkende ur under panik, "nah-nah-naaaaah" trombone ved timeout, og en triumf-fanfare ved perfekt score
+- **Personligt kursus**: efter quizzen samles et lille kursusmateriale af præcis de emner du svarede forkert på
 - **Login + leaderboard**: opret en bruger, og dine bedste scores ryger på en vedvarende topliste
 - **Live admin-dashboard**: følg folk spille i realtid via server-sent events
 - **Tastatur-styring** (1-4 / A-D) og `prefers-reduced-motion`-support
+
+## Personligt kursus
+
+<p align="center">
+  <img src="docs/course.png" alt="Personligt AI-kursus samlet ud fra forkerte svar" width="60%">
+</p>
+
+Hvert spørgsmål bærer et lille `topic` + `learn`-felt (en kort, korrekt mini-lektion). Frontend'en husker præcis hvilke spørgsmål deltageren svarede forkert på (eller løb tør for tid på) og samler bagefter et **personligt kursusmateriale** af netop de emner — med spørgsmålet, det rigtige svar og forklaringen. Får man alt rigtigt, er der intet at repetere.
 
 ## Login & leaderboard
 
