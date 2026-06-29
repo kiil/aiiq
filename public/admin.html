@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI IQ — Live Admin 🛰️</title>
+<style>
+  :root{
+    --bg1:#0f0c29;--bg2:#302b63;--bg3:#24243e;
+    --card:rgba(255,255,255,.06);--stroke:rgba(255,255,255,.14);
+    --accent:#a78bfa;--accent2:#f472b6;--txt:#f5f3ff;--muted:#b9b4d8;
+    --good:#22c55e;--bad:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    color:var(--txt);background:linear-gradient(135deg,var(--bg1),var(--bg2),var(--bg3));padding:24px}
+  a{color:var(--accent)}
+  header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+  h1{font-size:30px;margin:0;letter-spacing:-.5px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .dot{width:11px;height:11px;border-radius:50%;background:var(--bad)}
+  .dot.on{background:var(--good);box-shadow:0 0 0 0 rgba(34,197,94,.6);animation:ping 1.6s ease-out infinite}
+  @keyframes ping{0%{box-shadow:0 0 0 0 rgba(34,197,94,.55)}100%{box-shadow:0 0 0 12px rgba(34,197,94,0)}}
+  .conn{color:var(--muted);font-size:14px}
+  .back{margin-left:auto;font-size:14px;text-decoration:none}
+  .stats{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+  .stat{background:var(--card);border:1px solid var(--stroke);border-radius:16px;padding:14px 20px;min-width:120px}
+  .stat b{display:block;font-size:30px;line-height:1.1}
+  .stat span{color:var(--muted);font-size:13px}
+  .grid{display:grid;grid-template-columns:1.2fr 1fr;gap:20px}
+  @media(max-width:780px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--card);border:1px solid var(--stroke);border-radius:20px;padding:18px}
+  .panel h2{font-size:15px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:0 0 14px}
+  .empty{color:var(--muted);text-align:center;padding:26px 0}
+  /* aktiv spiller */
+  .pcard{border:1px solid var(--stroke);background:rgba(255,255,255,.04);border-radius:14px;padding:14px;margin-bottom:12px}
+  .pcard.flash{animation:flash .6s ease}
+  @keyframes flash{0%{background:rgba(167,139,250,.28)}100%{background:rgba(255,255,255,.04)}}
+  .pcard.done{opacity:.55}
+  .prow{display:flex;align-items:center;gap:10px}
+  .pname{font-weight:700;font-size:17px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ppts{font-weight:800;color:#fde68a}
+  .pstreak{color:#fca5a5;font-weight:700;font-size:14px}
+  .pmeta{color:var(--muted);font-size:13px;margin-top:6px;display:flex;justify-content:space-between}
+  .pbar{height:6px;border-radius:999px;background:rgba(0,0,0,.3);overflow:hidden;margin-top:8px}
+  .pbar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .4s ease}
+  /* feed */
+  .feed{max-height:60vh;overflow:auto}
+  .fitem{display:flex;gap:10px;align-items:baseline;padding:9px 4px;border-bottom:1px solid rgba(255,255,255,.06);font-size:15px;animation:slide .35s ease}
+  @keyframes slide{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+  .fitem .t{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;flex:0 0 64px}
+  .fitem .who{font-weight:700}
+  .fitem.good .ico{color:var(--good)}
+  .fitem.bad .ico{color:var(--bad)}
+</style>
+</head>
+<body>
+  <header>
+    <h1>AI IQ — Live 🛰️</h1>
+    <span class="dot" id="dot"></span>
+    <span class="conn" id="conn">forbinder…</span>
+    <a class="back" href="/">← til spillet</a>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><b id="stOnline">0</b><span>spiller lige nu</span></div>
+    <div class="stat"><b id="stDone">0</b><span>quizzer gennemført</span></div>
+    <div class="stat"><b id="stEvents">0</b><span>events i denne session</span></div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>🟢 Aktive spillere</h2>
+      <div id="players"><div class="empty">Venter på at nogen begynder at spille…</div></div>
+    </div>
+    <div class="panel">
+      <h2>📜 Live-feed</h2>
+      <div class="feed" id="feed"><div class="empty">Ingen aktivitet endnu.</div></div>
+    </div>
+  </div>
+
+<script>
+const $ = s => document.querySelector(s);
+const players = new Map();   // user -> {q,total,score,streak,status,el,timer}
+let doneCount = 0, eventCount = 0;
+
+const es = new EventSource('/api/admin/stream');
+es.onopen = () => { $('#dot').classList.add('on'); $('#conn').textContent = 'live'; };
+es.onerror = () => {
+  $('#dot').classList.remove('on');
+  $('#conn').textContent = 'afbrudt — er du logget ind som admin?';
+};
+es.onmessage = (e) => {
+  let ev; try{ ev = JSON.parse(e.data); }catch(_){ return; }
+  eventCount++; $('#stEvents').textContent = eventCount;
+  handle(ev);
+};
+
+function handle(ev){
+  const u = ev.user || 'Gæst';
+  if(ev.type === 'start'){
+    upsert(u, {q:0, total:ev.total||12, score:0, streak:0, status:'spiller'});
+    feed('▶', u, 'startede en quiz', '');
+  }else if(ev.type === 'answer'){
+    upsert(u, {q:ev.q||0, total:ev.total||12, score:ev.score||0, streak:ev.streak||0, status:'spiller'}, true);
+    const ok = ev.correct;
+    feed(ok?'✅':'❌', u, `Q${ev.q}${ev.timeout?' (tid løb ud)':''} — streak ${ev.streak||0}`, `${ev.score||0} pt`, ok?'good':'bad');
+  }else if(ev.type === 'finish'){
+    const p = players.get(u);
+    if(p){ p.status='færdig'; p.el.classList.add('done'); clearTimeout(p.timer);
+      p.timer = setTimeout(()=>{ p.el.remove(); players.delete(u); refreshStats(); }, 9000); }
+    doneCount++; $('#stDone').textContent = doneCount;
+    feed('🏁', u, `sluttede som ${ev.rank||'?'}`, `${ev.score||0} pt`);
+  }
+  refreshStats();
+}
+
+function upsert(u, data, flash){
+  let p = players.get(u);
+  if(!p){
+    p = { el: document.createElement('div'), timer:null };
+    p.el.className = 'pcard';
+    const host = $('#players');
+    if(host.querySelector('.empty')) host.innerHTML='';
+    host.prepend(p.el);
+    players.set(u, p);
+  }
+  Object.assign(p, data);
+  clearTimeout(p.timer); p.el.classList.remove('done');
+  p.el.innerHTML = `
+    <div class="prow">
+      <span class="pname"></span>
+      ${p.streak>=3?`<span class="pstreak">🔥 ${p.streak}</span>`:''}
+      <span class="ppts">${p.score} pt</span>
+    </div>
+    <div class="pmeta"><span>${p.status==='spiller'?`Spørgsmål ${p.q}/${p.total}`:p.status}</span><span>${p.streak>0?`streak ${p.streak}`:''}</span></div>
+    <div class="pbar"><i style="width:${p.total?Math.round(p.q/p.total*100):0}%"></i></div>`;
+  p.el.querySelector('.pname').textContent = u;   // textContent = ingen XSS
+  if(flash){ p.el.classList.remove('flash'); void p.el.offsetWidth; p.el.classList.add('flash'); }
+}
+
+function feed(ico, who, txt, right, cls){
+  const host = $('#feed');
+  if(host.querySelector('.empty')) host.innerHTML='';
+  const t = new Date().toLocaleTimeString('da-DK');
+  const item = document.createElement('div');
+  item.className = 'fitem' + (cls?(' '+cls):'');
+  item.innerHTML = `<span class="t"></span><span class="ico">${ico}</span><span><b class="who"></b> <span class="txt"></span></span><span style="margin-left:auto;color:#fde68a;font-weight:700"></span>`;
+  item.querySelector('.t').textContent = t;
+  item.querySelector('.who').textContent = who;
+  item.querySelector('.txt').textContent = txt;
+  item.lastElementChild.textContent = right || '';
+  host.prepend(item);
+  while(host.children.length > 60) host.lastElementChild.remove();
+}
+
+function refreshStats(){
+  const online = [...players.values()].filter(p=>p.status==='spiller').length;
+  $('#stOnline').textContent = online;
+  if(!players.size && !$('#players').querySelector('.pcard'))
+    $('#players').innerHTML = '<div class="empty">Venter på at nogen begynder at spille…</div>';
+}
+</script>
+</body>
+</html>

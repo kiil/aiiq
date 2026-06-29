@@ -11,6 +11,16 @@ def jok []: any -> any {
   to json | metadata set --content-type "application/json"
 }
 
+# Find brugernavn ud fra en session-token (eller null)
+def session-user [sid: string] {
+  let rows = (.cat -T sessions | where meta.token == $sid)
+  if ($rows | is-empty) { null } else { $rows | last | get meta.user }
+}
+# Admin-brugernavne (komma-sep via env AIIQ_ADMINS, ellers "admin")
+def admin-list [] {
+  ($env.AIIQ_ADMINS? | default "admin") | split row "," | each {|x| $x | str trim } | where {|x| $x != "" }
+}
+
 # AI IQ — en lille quiz der tester folks AI-viden.
 # Spørgsmålene lever her i backenden og serveres som JSON til frontend'en.
 const QUESTIONS = [
@@ -219,17 +229,15 @@ const RANKS = [
     # ---- Hvem er jeg? ----
     (route {path: "/api/me"} {|req ctx|
       let sid = ($req | cookie parse | get sid? | default "")
-      let rows = (.cat -T sessions | where meta.token == $sid)
-      let user = (if ($rows | is-empty) { null } else { $rows | last | get meta.user })
-      {user: $user} | jok
+      let user = (session-user $sid)
+      {user: $user, admin: (($user != null) and ($user in (admin-list)))} | jok
     })
 
     # ---- Indsend score (kræver login) ----
     (route {method: "POST" path: "/api/score"} {|req ctx|
       let body = ($in | from json)
       let sid = ($req | cookie parse | get sid? | default "")
-      let rows = (.cat -T sessions | where meta.token == $sid)
-      let user = (if ($rows | is-empty) { null } else { $rows | last | get meta.user })
+      let user = (session-user $sid)
       if ($user | is-empty) {
         jerr 401 "Du skal være logget ind for at gemme din score"
       } else {
@@ -256,6 +264,41 @@ const RANKS = [
         | select user score correct total at
       })
       $board | jok
+    })
+
+    # ---- Live-event fra en spiller (fire-and-forget) ----
+    (route {method: "POST" path: "/api/event"} {|req ctx|
+      let body = ($in | from json)
+      let sid = ($req | cookie parse | get sid? | default "")
+      let user = (session-user $sid | default "Gæst")
+      "" | .append events --meta ($body | merge {
+        user: $user
+        at: (date now | format date "%H:%M:%S")
+      })
+      {ok: true} | jok
+    })
+
+    # ---- Admin: live SSE-stream af alle events ----
+    (route {path: "/api/admin/stream"} {|req ctx|
+      let user = (session-user ($req | cookie parse | get sid? | default ""))
+      if ($user | is-empty) or ($user not-in (admin-list)) {
+        jerr 403 "Kun for admins"
+      } else {
+        .cat -T events --follow --new
+        | each {|f| {data: ($f.meta | to json -r)} }
+        | to sse
+      }
+    })
+
+    # ---- Admin: dashboard-siden (kun for admins) ----
+    (route {path: "/admin"} {|req ctx|
+      let user = (session-user ($req | cookie parse | get sid? | default ""))
+      if ($user | is-empty) or ($user not-in (admin-list)) {
+        "<!doctype html><meta charset=utf-8><body style='font-family:sans-serif;background:#1a1730;color:#eee;text-align:center;padding:60px'><h1>🔒 Kun for admins</h1><p>Log ind som admin-bruger på <a style='color:#a78bfa' href='/'>forsiden</a> først.</p></body>"
+        | metadata set { merge {'http.response': {status: 403, headers: {"Content-Type": "text/html; charset=utf-8"}}} }
+      } else {
+        .static "public" "/admin.html"
+      }
     })
 
     # ---- Statiske filer (fallback index.html) ----

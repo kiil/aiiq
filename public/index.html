@@ -199,6 +199,7 @@
       <div id="authBox" class="authbox"></div>
       <button class="btn" id="startBtn">Start quizzen →</button>
       <button class="btn ghost" id="boardBtn">🏆 Leaderboard</button>
+      <a id="adminLink" href="/admin" class="linkbtn hidden" style="display:block;margin-top:14px;text-align:center">🛰️ Live admin-dashboard</a>
       <p class="float">Drevet af <b>http-nu</b> + Nushell. Ingen rigtige AGI'er kom til skade.</p>
     </section>
 
@@ -384,10 +385,20 @@ async function boot(){
     $('#start').innerHTML = '<h1>Av 😬</h1><p class="tag">Kunne ikke hente spørgsmål fra serveren. Kører http-nu?</p>';
     return;
   }
-  try{ const m = await (await fetch('/api/me')).json(); currentUser = m.user; }catch(e){}
+  try{
+    const m = await (await fetch('/api/me')).json();
+    currentUser = m.user;
+    if(m.admin) $('#adminLink').classList.remove('hidden');
+  }catch(e){}
   renderAuth();
 }
 boot();
+
+// Fire-and-forget live-event til admin-dashboardet
+function emit(ev){
+  fetch('/api/event',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(ev)}).catch(()=>{});
+}
 
 /* ===== Login / auth ===== */
 function renderAuth(){
@@ -484,6 +495,7 @@ function startGame(){
   $('#start').classList.add('hidden');
   $('#result').classList.add('hidden');
   $('#quiz').classList.remove('hidden');
+  emit({type:'start', total:QS.length});
   renderQuestion();
 }
 
@@ -622,6 +634,7 @@ function answer(choice, btn){
   }
   $('#scoreLbl').textContent=`${score} pt`;
   $('#prog').style.width=`${((idx+1)/QS.length)*100}%`;
+  emit({type:'answer', q:idx+1, total:QS.length, correct:choice===q.answer, timeout:choice===-1, score, streak});
 
   const nb=$('#nextBtn');
   nb.textContent = idx+1<QS.length ? 'Næste →' : 'Se resultat 🏁';
@@ -652,6 +665,7 @@ function finish(){
   if(pct>=65) confetti(160);
   else miniBurst();
   if(rank.title==='AGI-Overherre'){ playFanfare(); setTimeout(()=>confetti(120),420); }
+  emit({type:'finish', score, correct:correctCount, total:QS.length, rank:rank.title});
   submitAndShowBoard();
 }
 
