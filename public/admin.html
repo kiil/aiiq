@@ -123,7 +123,7 @@ function handle(ev){
     if(p){ p.status='færdig'; p.el.classList.add('done'); clearTimeout(p.timer);
       p.timer = setTimeout(()=>{ p.el.remove(); players.delete(u); refreshStats(); }, 9000); }
     doneCount++; $('#stDone').textContent = doneCount;
-    feed('🏁', u, `sluttede som ${ev.rank||'?'}`, `${ev.score||0} pt`);
+    feed('🏁', u, `sluttede som ${ev.rank||'?'}${ev.attempt>1?` (forsøg ${ev.attempt})`:''}`, `${ev.score||0} pt`);
     loadWeak();   // opdatér svageste emner når nogen er færdig
   }
   refreshStats();

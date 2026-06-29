@@ -270,6 +270,7 @@ const RANKS = [
           score: ($body.score? | default 0)
           correct: ($body.correct? | default 0)
           total: ($body.total? | default 0)
+          attempt: ($body.attempt? | default 1)
           at: (date now | format date "%Y-%m-%dT%H:%M:%SZ")
         }
         {ok: true, user: $user} | jok

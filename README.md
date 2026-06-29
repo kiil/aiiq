@@ -15,6 +15,7 @@ En lille web-app der tester din viden om kunstig intelligens — med gamificatio
 - **Stress-timer**: en nedtællingslinje der slår som et hjerte og accelererer mod nul (grøn → rød)
 - **Lyd** (Web Audio, ingen lydfiler): glad blip ved rigtigt svar, womp ved forkert, tikkende ur under panik, "nah-nah-naaaaah" trombone ved timeout, og en triumf-fanfare ved perfekt score
 - **Personligt kursus**: efter quizzen samles et lille kursusmateriale af præcis de emner du svarede forkert på
+- **Før/efter**: tag et nyt forsøg efter kurset og se sort på hvidt hvilke svage emner du har rettet
 - **Login + leaderboard**: opret en bruger, og dine bedste scores ryger på en vedvarende topliste
 - **Live admin-dashboard**: følg folk spille i realtid via server-sent events
 - **Tastatur-styring** (1-4 / A-D) og `prefers-reduced-motion`-support
@@ -26,6 +27,12 @@ En lille web-app der tester din viden om kunstig intelligens — med gamificatio
 </p>
 
 Hvert spørgsmål bærer et lille `topic` + `learn`-felt (en kort, korrekt mini-lektion). Frontend'en husker præcis hvilke spørgsmål deltageren svarede forkert på (eller løb tør for tid på) og samler bagefter et **personligt kursusmateriale** af netop de emner — med spørgsmålet, det rigtige svar og forklaringen. Får man alt rigtigt, er der intet at repetere.
+
+Efter kurset kan deltageren tage et **nyt forsøg**, og resultatskærmen viser så en **før/efter-sammenligning** mod det første forsøg (baseline): score- og rigtige-udvikling, plus hvilke af de svage emner der nu er rettet (✓) eller stadig driller (⚠).
+
+<p align="center">
+  <img src="docs/compare.png" alt="Før/efter-sammenligning efter et nyt forsøg" width="60%">
+</p>
 
 ## Login & leaderboard
 

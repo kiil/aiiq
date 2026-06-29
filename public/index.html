@@ -195,6 +195,22 @@
   .lesson .body{font-size:15px;line-height:1.55;margin:10px 0 0}
   .course-perfect{text-align:center;border:1px solid var(--stroke);background:rgba(34,197,94,.1);
     border-radius:16px;padding:18px;font-size:16px}
+  /* før/efter-sammenligning */
+  .compare{margin:6px 0 18px;border:1px solid var(--stroke);border-radius:18px;padding:18px;
+    background:linear-gradient(135deg,rgba(167,139,250,.14),rgba(244,114,182,.1))}
+  .compare:empty{display:none}
+  .compare h3{margin:0 0 14px;font-size:19px}
+  .cmprow{display:flex;justify-content:center;gap:22px;margin-bottom:14px;flex-wrap:wrap}
+  .cmpstat{text-align:center}
+  .cmpstat .ba{font-size:15px;color:var(--muted)}
+  .cmpstat .ba b{color:var(--txt);font-size:20px}
+  .cmpstat .delta{font-weight:800;font-size:15px;margin-top:2px}
+  .delta.up{color:#86efac}.delta.down{color:#fca5a5}.delta.flat{color:var(--muted)}
+  .fixrow{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-top:8px}
+  .chip{font-size:13px;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid var(--stroke)}
+  .chip.ok{background:rgba(34,197,94,.16);border-color:var(--good);color:#bbf7d0}
+  .chip.still{background:rgba(251,146,60,.14);border-color:#fb923c;color:#fed7aa}
+  .cmpline{font-size:15px;margin:10px 0 0;line-height:1.5}
 
   @media (prefers-reduced-motion: reduce){
     .wrap.dance,#card.pump,#card.shake,#card.hot::before,.streak.hot,.timer.beat,#card.panic{animation:none !important}
@@ -246,6 +262,7 @@
       <div class="ranktitle" id="rankTitle">…</div>
       <div class="bigscore" id="finalScore">0</div>
       <div class="rankdesc" id="rankDesc">…</div>
+      <div id="compare" class="compare"></div>
       <div class="stats">
         <div><b id="stCorrect">0</b>rigtige</div>
         <div><b id="stTotal">0</b>spørgsmål</div>
@@ -268,6 +285,7 @@ let QS = [], RANKS = [];
 let currentUser = null;
 let idx = 0, score = 0, streak = 0, bestStreak = 0, correctCount = 0;
 let missed = [];   // spørgsmål deltageren svarede forkert på → personligt kursus
+let baseline = null, attemptNo = 1;   // første forsøg = baseline til før/efter-sammenligning
 let qStart = 0, timer = null, timeLeft = 0, answered = false, lastBeat = 0;
 let audioCtx = null, tickAt = 0, tickTock = 0;
 
@@ -499,9 +517,13 @@ async function showBoard(){
   renderBoard($('#boardList'), await fetchBoard());
 }
 
-$('#startBtn').onclick = startGame;
-$('#againBtn').onclick = () => location.reload();
+$('#startBtn').onclick = freshStart;
+$('#againBtn').onclick = retry;
 $('#nextBtn').onclick = nextQuestion;
+
+// Helt nyt forsøg (nulstiller baseline) vs. genforsøg efter kurset (bevarer baseline)
+function freshStart(){ baseline=null; attemptNo=1; startGame(); }
+function retry(){ attemptNo++; startGame(); }
 $('#boardBtn').onclick = showBoard;
 $('#boardBack').onclick = () => { $('#board').classList.add('hidden'); $('#start').classList.remove('hidden'); };
 
@@ -683,10 +705,58 @@ function finish(){
   if(pct>=65) confetti(160);
   else miniBurst();
   if(rank.title==='AGI-Overherre'){ playFanfare(); setTimeout(()=>confetti(120),420); }
-  emit({type:'finish', score, correct:correctCount, total:QS.length, rank:rank.title, missed:missed.map(q=>q.topic)});
+  emit({type:'finish', score, correct:correctCount, total:QS.length, rank:rank.title, attempt:attemptNo, missed:missed.map(q=>q.topic)});
+
+  const cur = {score, correct:correctCount, total:QS.length, missedTopics:missed.map(q=>q.topic)};
+  renderCompare(cur);                 // før/efter (kun fra 2. forsøg)
+  if(!baseline) baseline = cur;       // første forsøg bliver baseline
   renderCourse();
+
+  // CTA: opmuntr til at prøve igen efter kurset
+  $('#againBtn').textContent = missed.length
+    ? '🔁 Prøv igen — slå dine svage emner'
+    : (attemptNo>1 ? '🔁 Tag en runde til' : '🔁 Spil igen');
   submitAndShowBoard();
 }
+
+// Sammenlign nuværende forsøg med baseline (før kurset)
+function renderCompare(cur){
+  const el = $('#compare');
+  if(!baseline){ el.innerHTML=''; return; }   // første forsøg: intet at sammenligne med
+  const b = baseline;
+  const baseMissed = new Set(b.missedTopics);
+  const nowMissed  = new Set(cur.missedTopics);
+  const fixed = [...baseMissed].filter(t=>!nowMissed.has(t));   // rettet siden sidst
+  const still = [...baseMissed].filter(t=> nowMissed.has(t));   // stadig svær
+  const dScore = cur.score - b.score;
+  const dCorr  = cur.correct - b.correct;
+  const arrow = d => d>0?`▲ +${d}`:(d<0?`▼ ${d}`:'± 0');
+  const cls   = d => d>0?'up':(d<0?'down':'flat');
+
+  let line;
+  if(baseMissed.size===0){
+    line = 'Du var allerede perfekt før kurset — nu jagter du bare highscoren. 🏆';
+  }else if(fixed.length===baseMissed.size){
+    line = `Wow — du rettede <b>alle ${baseMissed.size}</b> af dine svage emner! 🎉`;
+  }else if(fixed.length>0){
+    line = `Flot — du rettede <b>${fixed.length} af ${baseMissed.size}</b> svage emner siden kurset. 💪`;
+  }else{
+    line = 'Ingen af de svage emner blev rettet endnu — tag et kig på kurset nedenfor og prøv igen. 📚';
+  }
+
+  el.innerHTML = `
+    <h3>📈 Før vs. efter kurset <span style="color:var(--muted);font-weight:600;font-size:14px">(forsøg ${attemptNo})</span></h3>
+    <div class="cmprow">
+      <div class="cmpstat"><div class="ba"><b>${b.score}</b> → <b>${cur.score}</b> pt</div><div class="delta ${cls(dScore)}">${arrow(dScore)}</div></div>
+      <div class="cmpstat"><div class="ba"><b>${b.correct}</b> → <b>${cur.correct}</b> rigtige</div><div class="delta ${cls(dCorr)}">${arrow(dCorr)}</div></div>
+    </div>
+    ${(fixed.length||still.length) ? `<div class="fixrow">
+      ${fixed.map(t=>`<span class="chip ok">✓ ${esc(t)}</span>`).join('')}
+      ${still.map(t=>`<span class="chip still">⚠ ${esc(t)}</span>`).join('')}
+    </div>` : ''}
+    <p class="cmpline">${line}</p>`;
+}
+function esc(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 
 // Saml et personligt mini-kursus af præcis de emner deltageren missede
 function renderCourse(){
@@ -723,7 +793,7 @@ async function submitAndShowBoard(){
     hint.textContent = '✅ Din score er gemt på leaderboardet.';
     try{
       await fetch('/api/score',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({score, correct:correctCount, total:QS.length})});
+        body:JSON.stringify({score, correct:correctCount, total:QS.length, attempt:attemptNo})});
     }catch(e){}
   }else{
     hint.textContent = '💡 Log ind på forsiden for at gemme din score på leaderboardet.';
