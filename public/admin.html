@@ -52,6 +52,14 @@
   .fitem .who{font-weight:700}
   .fitem.good .ico{color:var(--good)}
   .fitem.bad .ico{color:var(--bad)}
+  /* svageste emner */
+  .wrow{margin-bottom:12px}
+  .wtop{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+  .wtop .wt{font-weight:700}
+  .wtop .wc{color:var(--muted);font-size:13px}
+  .wbar{height:14px;border-radius:8px;background:rgba(0,0,0,.3);overflow:hidden}
+  .wbar>i{display:block;height:100%;width:0;border-radius:8px;
+    background:linear-gradient(90deg,#fbbf24,#f472b6,#ef4444);transition:width .5s ease}
 </style>
 </head>
 <body>
@@ -79,13 +87,18 @@
     </div>
   </div>
 
+  <div class="panel" style="margin-top:20px">
+    <h2>📉 Svageste emner <span style="text-transform:none;letter-spacing:0;font-weight:400">— hvad folk oftest svarer forkert på</span></h2>
+    <div id="weak"><div class="empty">Ingen data endnu — venter på gennemførte quizzer.</div></div>
+  </div>
+
 <script>
 const $ = s => document.querySelector(s);
 const players = new Map();   // user -> {q,total,score,streak,status,el,timer}
 let doneCount = 0, eventCount = 0;
 
 const es = new EventSource('/api/admin/stream');
-es.onopen = () => { $('#dot').classList.add('on'); $('#conn').textContent = 'live'; };
+es.onopen = () => { $('#dot').classList.add('on'); $('#conn').textContent = 'live'; loadWeak(); };
 es.onerror = () => {
   $('#dot').classList.remove('on');
   $('#conn').textContent = 'afbrudt — er du logget ind som admin?';
@@ -111,8 +124,32 @@ function handle(ev){
       p.timer = setTimeout(()=>{ p.el.remove(); players.delete(u); refreshStats(); }, 9000); }
     doneCount++; $('#stDone').textContent = doneCount;
     feed('🏁', u, `sluttede som ${ev.rank||'?'}`, `${ev.score||0} pt`);
+    loadWeak();   // opdatér svageste emner når nogen er færdig
   }
   refreshStats();
+}
+
+// Hent + render de aggregerede svageste emner
+let weakTimer = null;
+function loadWeak(){
+  clearTimeout(weakTimer);
+  weakTimer = setTimeout(async () => {
+    let rows = [];
+    try{ rows = await (await fetch('/api/admin/misses')).json(); }catch(_){ return; }
+    const host = $('#weak');
+    if(!rows.length){ host.innerHTML = '<div class="empty">Ingen data endnu — venter på gennemførte quizzer.</div>'; return; }
+    const max = rows[0].count || 1;
+    host.innerHTML = '';
+    rows.forEach(r => {
+      const row = document.createElement('div');
+      row.className = 'wrow';
+      row.innerHTML = `<div class="wtop"><span class="wt"></span><span class="wc"></span></div>
+        <div class="wbar"><i style="width:${Math.round(r.count/max*100)}%"></i></div>`;
+      row.querySelector('.wt').textContent = r.topic;
+      row.querySelector('.wc').textContent = `${r.count} fejl · ${r.players} spiller${r.players===1?'':'e'}`;
+      host.appendChild(row);
+    });
+  }, 250);   // lille debounce hvis flere finish-events kommer hurtigt
 }
 
 function upsert(u, data, flash){

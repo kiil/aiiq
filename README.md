@@ -49,6 +49,7 @@ API-endpoints (alle JSON):
 | `GET`  | `/api/leaderboard` | Top 15, bedste score pr. bruger |
 | `POST` | `/api/event`       | Live-event fra en spiller (fire-and-forget) |
 | `GET`  | `/api/admin/stream`| SSE-stream af alle events (kun admin) |
+| `GET`  | `/api/admin/misses`| Svageste emner, aggregeret (kun admin) |
 | `GET`  | `/admin`           | Live-dashboardet (kun admin) |
 
 ## Live admin-dashboard
@@ -58,6 +59,12 @@ API-endpoints (alle JSON):
 </p>
 
 Som admin kan du følge folk spille **i realtid** på `/admin`: aktive spillere med live score/streak/progress, og et rullende live-feed. Det er drevet af http-nu's cross.stream + **server-sent events** (`.cat --follow → to sse`) — ingen polling, ingen WebSocket.
+
+Dashboardet samler også **svageste emner** — en rangliste over hvad folk oftest svarer forkert på (gemt i et `misses`-topic ved hver finish), så du kan se hvor undervisningen skal sætte ind:
+
+<p align="center">
+  <img src="docs/admin-weak.png" alt="Admin-dashboard med svageste emner" width="92%">
+</p>
 
 Adgang styres ved at whiteliste et brugernavn via miljøvariablen `AIIQ_ADMINS` (komma-separeret; default er `admin`). Log ind som den bruger, og `/admin` + streamen åbner sig — alle andre får `403`.
 
@@ -79,7 +86,7 @@ AIIQ_ADMINS=ditbrugernavn http-nu :3001 --store ./store --dev -w app.nu
 
 ## Struktur
 
-- **`app.nu`** — http-nu-handler. Bruger `router`-modulet til at dispatche endpoints og serverer alt andet statisk fra `public/`. Brugere/sessioner/scores/events lever i cross.stream-topics (`users`, `sessions`, `scores`, `events`).
+- **`app.nu`** — http-nu-handler. Bruger `router`-modulet til at dispatche endpoints og serverer alt andet statisk fra `public/`. Data lever i cross.stream-topics (`users`, `sessions`, `scores`, `events`, `misses`).
 - **`public/index.html`** — selve quiz-appen (self-contained HTML/CSS/JS, ingen build-step).
 - **`public/admin.html`** — live admin-dashboardet (lytter på SSE-streamen).
 

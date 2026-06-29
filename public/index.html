@@ -683,7 +683,7 @@ function finish(){
   if(pct>=65) confetti(160);
   else miniBurst();
   if(rank.title==='AGI-Overherre'){ playFanfare(); setTimeout(()=>confetti(120),420); }
-  emit({type:'finish', score, correct:correctCount, total:QS.length, rank:rank.title});
+  emit({type:'finish', score, correct:correctCount, total:QS.length, rank:rank.title, missed:missed.map(q=>q.topic)});
   renderCourse();
   submitAndShowBoard();
 }

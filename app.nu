@@ -299,6 +299,12 @@ const RANKS = [
         user: $user
         at: (date now | format date "%H:%M:%S")
       })
+      # Gem deltagerens svage emner ved finish, så admin kan se mønstre
+      if ($body.type? == "finish") {
+        ($body.missed? | default []) | each {|t|
+          "" | .append misses --meta { user: $user, topic: $t, at: (date now | format date "%Y-%m-%dT%H:%M:%SZ") }
+        }
+      }
       {ok: true} | jok
     })
 
@@ -311,6 +317,23 @@ const RANKS = [
         .cat -T events --follow --new
         | each {|f| {data: ($f.meta | to json -r)} }
         | to sse
+      }
+    })
+
+    # ---- Admin: svageste emner (aggregeret) ----
+    (route {path: "/api/admin/misses"} {|req ctx|
+      let user = (session-user ($req | cookie parse | get sid? | default ""))
+      if ($user | is-empty) or ($user not-in (admin-list)) {
+        jerr 403 "Kun for admins"
+      } else {
+        let frames = (.cat -T misses)
+        let board = (if ($frames | is-empty) { [] } else {
+          $frames | get meta
+          | group-by topic --to-table
+          | each {|g| {topic: $g.topic, count: ($g.items | length), players: ($g.items | get user | uniq | length)} }
+          | sort-by count --reverse
+        })
+        $board | jok
       }
     })
 
