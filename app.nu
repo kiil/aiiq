@@ -1,4 +1,15 @@
 use http-nu/router *
+use http-nu/http *
+
+# JSON-svar med en HTTP-statuskode (til fejl)
+def jerr [status: int, msg: string] {
+  {error: $msg} | to json
+  | metadata set { merge {'http.response': {status: $status, headers: {"Content-Type": "application/json"}}} }
+}
+# JSON-svar (200) — pipe en value ind
+def jok []: any -> any {
+  to json | metadata set --content-type "application/json"
+}
 
 # AI IQ — en lille quiz der tester folks AI-viden.
 # Spørgsmålene lever her i backenden og serveres som JSON til frontend'en.
@@ -161,14 +172,93 @@ const RANKS = [
 
 {|req|
   dispatch $req [
-    # API: alle spørgsmål som JSON (uden facit eksponeret? — vi sender facit med for nem klient-logik)
+    # ---- Spørgsmål ----
     (route {path: "/api/questions"} {|req ctx|
-      { questions: $QUESTIONS, ranks: $RANKS }
-      | to json
-      | metadata set --content-type "application/json"
+      { questions: $QUESTIONS, ranks: $RANKS } | jok
     })
 
-    # Alt andet serveres statisk fra ./public, med index.html som fallback
+    # ---- Opret bruger ----
+    (route {method: "POST" path: "/api/register"} {|req ctx|
+      let body = ($in | from json)
+      let u = ($body.user? | default "" | str trim)
+      let p = ($body.pass? | default "")
+      if ($u | is-empty) or ($p | is-empty) {
+        jerr 400 "Brugernavn og kode skal udfyldes"
+      } else if ($u | str length) > 24 {
+        jerr 400 "Brugernavn må højst være 24 tegn"
+      } else if (.cat -T users | where meta.user == $u | is-not-empty) {
+        jerr 409 "Brugernavnet er allerede taget"
+      } else {
+        "" | .append users --meta {user: $u, hash: ($p | hash sha256)}
+        let tok = (random uuid)
+        "" | .append sessions --meta {token: $tok, user: $u}
+        {user: $u} | jok | cookie set "sid" $tok --max-age 2592000
+      }
+    })
+
+    # ---- Log ind ----
+    (route {method: "POST" path: "/api/login"} {|req ctx|
+      let body = ($in | from json)
+      let u = ($body.user? | default "" | str trim)
+      let p = ($body.pass? | default "")
+      let rows = (.cat -T users | where meta.user == $u)
+      if ($rows | is-empty) or (($rows | last | get meta.hash) != ($p | hash sha256)) {
+        jerr 401 "Forkert brugernavn eller kode"
+      } else {
+        let tok = (random uuid)
+        "" | .append sessions --meta {token: $tok, user: $u}
+        {user: $u} | jok | cookie set "sid" $tok --max-age 2592000
+      }
+    })
+
+    # ---- Log ud ----
+    (route {method: "POST" path: "/api/logout"} {|req ctx|
+      {ok: true} | jok | cookie delete "sid"
+    })
+
+    # ---- Hvem er jeg? ----
+    (route {path: "/api/me"} {|req ctx|
+      let sid = ($req | cookie parse | get sid? | default "")
+      let rows = (.cat -T sessions | where meta.token == $sid)
+      let user = (if ($rows | is-empty) { null } else { $rows | last | get meta.user })
+      {user: $user} | jok
+    })
+
+    # ---- Indsend score (kræver login) ----
+    (route {method: "POST" path: "/api/score"} {|req ctx|
+      let body = ($in | from json)
+      let sid = ($req | cookie parse | get sid? | default "")
+      let rows = (.cat -T sessions | where meta.token == $sid)
+      let user = (if ($rows | is-empty) { null } else { $rows | last | get meta.user })
+      if ($user | is-empty) {
+        jerr 401 "Du skal være logget ind for at gemme din score"
+      } else {
+        "" | .append scores --meta {
+          user: $user
+          score: ($body.score? | default 0)
+          correct: ($body.correct? | default 0)
+          total: ($body.total? | default 0)
+          at: (date now | format date "%Y-%m-%dT%H:%M:%SZ")
+        }
+        {ok: true, user: $user} | jok
+      }
+    })
+
+    # ---- Leaderboard (bedste score pr. bruger) ----
+    (route {path: "/api/leaderboard"} {|req ctx|
+      let frames = (.cat -T scores)
+      let board = (if ($frames | is-empty) { [] } else {
+        $frames | get meta
+        | group-by user --to-table
+        | each {|g| $g.items | sort-by score | last }
+        | sort-by score --reverse
+        | first 15
+        | select user score correct total at
+      })
+      $board | jok
+    })
+
+    # ---- Statiske filer (fallback index.html) ----
     (route true {|req ctx|
       .static "public" $req.path --fallback "index.html"
     })
