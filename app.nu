@@ -338,6 +338,42 @@ const RANKS = [
       }
     })
 
+    # ---- Admin: effekt af kurset (forbedring fra første til seneste forsøg) ----
+    (route {path: "/api/admin/improvement"} {|req ctx|
+      let user = (session-user ($req | cookie parse | get sid? | default ""))
+      if ($user | is-empty) or ($user not-in (admin-list)) {
+        jerr 403 "Kun for admins"
+      } else {
+        let frames = (.cat -T scores)
+        let per = (if ($frames | is-empty) { [] } else {
+          $frames | get meta
+          | group-by user --to-table
+          | where {|g| ($g.items | length) >= 2 }          # kun dem der har taget mere end ét forsøg
+          | each {|g|
+              let s = ($g.items | sort-by at)
+              let first = ($s | first)
+              let last = ($s | last)
+              {
+                user: $g.user
+                attempts: ($g.items | length)
+                firstCorrect: $first.correct
+                lastCorrect: $last.correct
+                dCorrect: ($last.correct - $first.correct)
+                dScore: ($last.score - $first.score)
+              }
+            }
+          | sort-by dCorrect --reverse
+        })
+        {
+          retriers: ($per | length)
+          improved: ($per | where dCorrect > 0 | length)
+          avgDeltaCorrect: (if ($per | is-empty) { 0 } else { $per | get dCorrect | math avg })
+          avgDeltaScore: (if ($per | is-empty) { 0 } else { $per | get dScore | math avg })
+          perUser: ($per | first 12)
+        } | jok
+      }
+    })
+
     # ---- Admin: dashboard-siden (kun for admins) ----
     (route {path: "/admin"} {|req ctx|
       let user = (session-user ($req | cookie parse | get sid? | default ""))

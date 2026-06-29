@@ -28,7 +28,7 @@ En lille web-app der tester din viden om kunstig intelligens — med gamificatio
 
 Hvert spørgsmål bærer et lille `topic` + `learn`-felt (en kort, korrekt mini-lektion). Frontend'en husker præcis hvilke spørgsmål deltageren svarede forkert på (eller løb tør for tid på) og samler bagefter et **personligt kursusmateriale** af netop de emner — med spørgsmålet, det rigtige svar og forklaringen. Får man alt rigtigt, er der intet at repetere.
 
-Efter kurset kan deltageren tage et **nyt forsøg**, og resultatskærmen viser så en **før/efter-sammenligning** mod det første forsøg (baseline): score- og rigtige-udvikling, plus hvilke af de svage emner der nu er rettet (✓) eller stadig driller (⚠).
+Efter kurset kan deltageren tage et **nyt forsøg**, og resultatskærmen viser så en **før/efter-sammenligning** mod det første forsøg (baseline): score- og rigtige-udvikling, plus hvilke af de svage emner der nu er rettet (✓) eller stadig driller (⚠). Forbedringen gemmes også server-side, så admin kan se den samlede effekt (se [Live admin-dashboard](#live-admin-dashboard)).
 
 <p align="center">
   <img src="docs/compare.png" alt="Før/efter-sammenligning efter et nyt forsøg" width="60%">
@@ -57,6 +57,7 @@ API-endpoints (alle JSON):
 | `POST` | `/api/event`       | Live-event fra en spiller (fire-and-forget) |
 | `GET`  | `/api/admin/stream`| SSE-stream af alle events (kun admin) |
 | `GET`  | `/api/admin/misses`| Svageste emner, aggregeret (kun admin) |
+| `GET`  | `/api/admin/improvement`| Effekt af kurset: forbedring over forsøg (kun admin) |
 | `GET`  | `/admin`           | Live-dashboardet (kun admin) |
 
 ## Live admin-dashboard
@@ -71,6 +72,12 @@ Dashboardet samler også **svageste emner** — en rangliste over hvad folk ofte
 
 <p align="center">
   <img src="docs/admin-weak.png" alt="Admin-dashboard med svageste emner" width="92%">
+</p>
+
+Og fordi hvert score-forsøg gemmes med et `attempt`-nummer, kan dashboardet vise **effekten af kurset** — den gennemsnitlige forbedring fra deltagernes første til seneste forsøg, så du har sort på hvidt på om undervisningen rykker:
+
+<p align="center">
+  <img src="docs/impact.png" alt="Effekt af kurset: gennemsnitlig forbedring over forsøg" width="92%">
 </p>
 
 Adgang styres ved at whiteliste et brugernavn via miljøvariablen `AIIQ_ADMINS` (komma-separeret; default er `admin`). Log ind som den bruger, og `/admin` + streamen åbner sig — alle andre får `403`.

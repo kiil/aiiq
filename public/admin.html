@@ -60,6 +60,18 @@
   .wbar{height:14px;border-radius:8px;background:rgba(0,0,0,.3);overflow:hidden}
   .wbar>i{display:block;height:100%;width:0;border-radius:8px;
     background:linear-gradient(90deg,#fbbf24,#f472b6,#ef4444);transition:width .5s ease}
+  /* effekt af kurset */
+  .isum{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .istat{flex:1;min-width:140px;background:rgba(255,255,255,.04);border:1px solid var(--stroke);border-radius:14px;padding:14px 18px}
+  .istat b{display:block;font-size:28px;line-height:1.1;
+    background:linear-gradient(90deg,#34d399,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .istat span{color:var(--muted);font-size:13px}
+  .irow{display:flex;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid rgba(255,255,255,.06);font-size:15px}
+  .irow .who{font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .irow .prog{color:var(--muted);font-variant-numeric:tabular-nums}
+  .irow .d{font-weight:800;width:54px;text-align:right}
+  .d.up{color:#86efac}.d.down{color:#fca5a5}.d.flat{color:var(--muted)}
+  .irow .att{color:var(--muted);font-size:12px;width:64px;text-align:right}
 </style>
 </head>
 <body>
@@ -92,13 +104,18 @@
     <div id="weak"><div class="empty">Ingen data endnu — venter på gennemførte quizzer.</div></div>
   </div>
 
+  <div class="panel" style="margin-top:20px">
+    <h2>📚 Effekt af kurset <span style="text-transform:none;letter-spacing:0;font-weight:400">— forbedring fra første til seneste forsøg</span></h2>
+    <div id="impact"><div class="empty">Ingen data endnu — venter på at nogen tager et nyt forsøg.</div></div>
+  </div>
+
 <script>
 const $ = s => document.querySelector(s);
 const players = new Map();   // user -> {q,total,score,streak,status,el,timer}
 let doneCount = 0, eventCount = 0;
 
 const es = new EventSource('/api/admin/stream');
-es.onopen = () => { $('#dot').classList.add('on'); $('#conn').textContent = 'live'; loadWeak(); };
+es.onopen = () => { $('#dot').classList.add('on'); $('#conn').textContent = 'live'; loadWeak(); loadImpact(); };
 es.onerror = () => {
   $('#dot').classList.remove('on');
   $('#conn').textContent = 'afbrudt — er du logget ind som admin?';
@@ -124,7 +141,8 @@ function handle(ev){
       p.timer = setTimeout(()=>{ p.el.remove(); players.delete(u); refreshStats(); }, 9000); }
     doneCount++; $('#stDone').textContent = doneCount;
     feed('🏁', u, `sluttede som ${ev.rank||'?'}${ev.attempt>1?` (forsøg ${ev.attempt})`:''}`, `${ev.score||0} pt`);
-    loadWeak();   // opdatér svageste emner når nogen er færdig
+    loadWeak();     // opdatér svageste emner når nogen er færdig
+    loadImpact();   // opdatér effekt-målingen ved nye forsøg
   }
   refreshStats();
 }
@@ -150,6 +168,36 @@ function loadWeak(){
       host.appendChild(row);
     });
   }, 250);   // lille debounce hvis flere finish-events kommer hurtigt
+}
+
+// Hent + render effekten af kurset (forbedring over forsøg)
+let impTimer = null;
+function loadImpact(){
+  clearTimeout(impTimer);
+  impTimer = setTimeout(async () => {
+    let d;
+    try{ d = await (await fetch('/api/admin/improvement')).json(); }catch(_){ return; }
+    const host = $('#impact');
+    if(!d.retriers){ host.innerHTML = '<div class="empty">Ingen data endnu — venter på at nogen tager et nyt forsøg.</div>'; return; }
+    const sign = n => (n>0?'+':'') + n;
+    const cls  = n => n>0?'up':(n<0?'down':'flat');
+    let html = `<div class="isum">
+      <div class="istat"><b>${sign((+d.avgDeltaCorrect).toFixed(1))}</b><span>rigtige i gennemsnit</span></div>
+      <div class="istat"><b>${d.improved}/${d.retriers}</b><span>forbedrede sig efter kurset</span></div>
+      <div class="istat"><b>${sign(Math.round(d.avgDeltaScore))}</b><span>point i gennemsnit</span></div>
+    </div>`;
+    host.innerHTML = html;
+    d.perUser.forEach(u => {
+      const row = document.createElement('div');
+      row.className = 'irow';
+      row.innerHTML = `<span class="who"></span>
+        <span class="prog">${u.firstCorrect} → ${u.lastCorrect} rigtige</span>
+        <span class="d ${cls(u.dCorrect)}">${sign(u.dCorrect)}</span>
+        <span class="att">${u.attempts} forsøg</span>`;
+      row.querySelector('.who').textContent = u.user;   // textContent = ingen XSS
+      host.appendChild(row);
+    });
+  }, 250);
 }
 
 function upsert(u, data, flash){
