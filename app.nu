@@ -20,6 +20,16 @@ def session-user [sid: string] {
 def admin-list [] {
   ($env.AIIQ_ADMINS? | default "admin") | split row "," | each {|x| $x | str trim } | where {|x| $x != "" }
 }
+# Tidsfilter: returnér en ISO-cutoff-streng (eller null = alt). Sammenlignes lexikalsk mod 'at'.
+def cutoff [range: string] {
+  match $range {
+    "1h" => ((date now) - 1hr | format date "%Y-%m-%dT%H:%M:%SZ")
+    "24h" => ((date now) - 1day | format date "%Y-%m-%dT%H:%M:%SZ")
+    "7d" => ((date now) - 7day | format date "%Y-%m-%dT%H:%M:%SZ")
+    "today" => $"((date now | format date '%Y-%m-%d'))T00:00:00Z"
+    _ => null
+  }
+}
 
 # AI IQ — en lille quiz der tester folks AI-viden.
 # Spørgsmålene lever her i backenden og serveres som JSON til frontend'en.
@@ -327,9 +337,10 @@ const RANKS = [
       if ($user | is-empty) or ($user not-in (admin-list)) {
         jerr 403 "Kun for admins"
       } else {
-        let frames = (.cat -T misses)
-        let board = (if ($frames | is-empty) { [] } else {
-          $frames | get meta
+        let cut = (cutoff ($req.query.range? | default "all"))
+        let rows = (.cat -T misses | get meta | where {|m| ($cut == null) or ($m.at >= $cut) })
+        let board = (if ($rows | is-empty) { [] } else {
+          $rows
           | group-by topic --to-table
           | each {|g| {topic: $g.topic, count: ($g.items | length), players: ($g.items | get user | uniq | length)} }
           | sort-by count --reverse
@@ -344,9 +355,10 @@ const RANKS = [
       if ($user | is-empty) or ($user not-in (admin-list)) {
         jerr 403 "Kun for admins"
       } else {
-        let frames = (.cat -T scores)
-        let per = (if ($frames | is-empty) { [] } else {
-          $frames | get meta
+        let cut = (cutoff ($req.query.range? | default "all"))
+        let rows = (.cat -T scores | get meta | where {|m| ($cut == null) or ($m.at >= $cut) })
+        let per = (if ($rows | is-empty) { [] } else {
+          $rows
           | group-by user --to-table
           | where {|g| ($g.items | length) >= 2 }          # kun dem der har taget mere end ét forsøg
           | each {|g|

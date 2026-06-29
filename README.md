@@ -80,6 +80,12 @@ Og fordi hvert score-forsøg gemmes med et `attempt`-nummer, kan dashboardet vis
   <img src="docs/impact.png" alt="Effekt af kurset: gennemsnitlig forbedring over forsøg" width="92%">
 </p>
 
+De to historiske paneler (svageste emner + effekt) har et **tidsfilter** — *Seneste time / I dag / 7 dage / Alt* — så du kan måle ét bestemt kursus-hold. Filteret sendes som `?range=` til endpointsne, der filtrerer på `at`-tidsstemplet server-side.
+
+<p align="center">
+  <img src="docs/filter.png" alt="Tidsfilter på admin-statistikkerne" width="92%">
+</p>
+
 Adgang styres ved at whiteliste et brugernavn via miljøvariablen `AIIQ_ADMINS` (komma-separeret; default er `admin`). Log ind som den bruger, og `/admin` + streamen åbner sig — alle andre får `403`.
 
 ## Kør den
